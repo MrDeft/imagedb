@@ -59,9 +59,11 @@ app.post("/upload", upload.single("image"), async (req, res) => {
     });
 
     res.json(image);
-  } catch (err) {
-    res.status(500).json({ error: "Server xatosi" });
-  }
+  }catch (err) {
+  console.error(err);
+  res.status(500).json({ error: err.message });
+}
+
 });
 
 // barcha rasmlarni olish
