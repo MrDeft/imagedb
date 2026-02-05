@@ -2,43 +2,84 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import { upload } from "./multer.js";
 import Image from "./models/Image.js";
 
 dotenv.config();
 
 const app = express();
+
+/* ===============================
+   ASOSIY SOZLAMALAR
+================================ */
+
 app.use(cors());
 app.use(express.json());
 
-// uploads papkasini brauzerga ochiq qilish
-app.use("/uploads", express.static("uploads"));
+// __dirname ni ES module uchun olish
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// MongoDB ulash
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB ulandi"))
-  .catch(err => console.log(err));
+// uploads papkasini ochiq qilish
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Frontend formni server orqali ochish
-app.use(express.static("public"));
+// public papkadan frontend berish
+app.use(express.static(path.join(__dirname, "public")));
 
-// Test route
-app.get("/test", (req, res) => res.send("Server ishlayapti"));
+/* ===============================
+   MONGODB ULASH
+================================ */
 
-// Rasm upload route
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB muvaffaqiyatli ulandi"))
+  .catch((err) => console.error("MongoDB xato:", err));
+
+/* ===============================
+   ROUTES
+================================ */
+
+// tekshiruv
+app.get("/test", (req, res) => {
+  res.send("Server ishlayapti");
+});
+
+// rasm yuklash
 app.post("/upload", upload.single("image"), async (req, res) => {
-  const data = await Image.create({
-    title: req.body.title,
-    imageUrl: `/uploads/${req.file.filename}`
-  });
-  res.json(data);
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Rasm yuborilmadi" });
+    }
+
+    const image = await Image.create({
+      title: req.body.title || "Nomsiz rasm",
+      imageUrl: `/uploads/${req.file.filename}`,
+    });
+
+    res.json(image);
+  } catch (err) {
+    res.status(500).json({ error: "Server xatosi" });
+  }
 });
 
-// Barcha rasmni ko‘rsatish
+// barcha rasmlarni olish
 app.get("/images", async (req, res) => {
-  const images = await Image.find();
-  res.json(images);
+  try {
+    const images = await Image.find().sort({ _id: -1 });
+    res.json(images);
+  } catch (err) {
+    res.status(500).json({ error: "Maʼlumot olishda xato" });
+  }
 });
 
-// Serverni ishga tushirish
-app.listen(5000, () => console.log("Server 5000-portda ishlayapti"));
+/* ===============================
+   SERVERNI ISHGA TUSHIRISH
+================================ */
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server ${PORT}-portda ishga tushdi`);
+});
