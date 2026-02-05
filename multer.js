@@ -2,10 +2,10 @@ import multer from "multer";
 import path from "path";
 
 const storage = multer.diskStorage({
-  destination: "uploads/",  // rasm shu papkaga tushadi
+  destination: "uploads/",
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname)); // 1730000000000.jpg
-  }
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
 });
 
 export const upload = multer({ storage });
